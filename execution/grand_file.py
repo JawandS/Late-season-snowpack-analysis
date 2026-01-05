@@ -31,6 +31,7 @@ def snow_difference_map(region_polygon,
                         output_filename='snow_difference_analysis',
                         output_format='tiff',
                         export_by_layer=True,
+                        progress_callback=None,
                         ndsi_vis= {
                             'min': -0.5,
                             'max': 1.0,
@@ -60,9 +61,18 @@ def snow_difference_map(region_polygon,
     - output_filename: Base filename (no extension)
     - output_format: File format ('tiff', 'png', 'jpg', 'html')
     - export_by_layer: Export each layer as separate file (default: True)
+    - progress_callback: Optional callback function(stage_id, message) for progress updates
     
     Returns: Folium map object
     """
+    
+    def report_progress(stage_id, message):
+        """Report progress via callback if available."""
+        print(message)
+        if progress_callback:
+            progress_callback(stage_id, message)
+    
+    report_progress('init', 'Initializing Earth Engine and processing collections...')
     
     # Process collections
     collection_a = ee.ImageCollection(collection_1) \
@@ -101,6 +111,8 @@ def snow_difference_map(region_polygon,
     # Define spatial reference (Web Mercator for consistency)
     crs = 'EPSG:3857'
     
+    report_progress('area', 'Calculating study area and optimal resolution...')
+    
     # Calculate area to determine optimal export resolution
     bounds = region_polygon.bounds().getInfo()
     coords = bounds['coordinates'][0]
@@ -118,7 +130,7 @@ def snow_difference_map(region_polygon,
     else:
         scale, max_pixels = 30, int(1e9)
     
-    print(f"Area: {area_sq_deg:.1f} sq deg, Resolution: {scale}m")
+    report_progress('area', f"Study area: {area_sq_deg:.1f} sq deg, using {scale}m resolution")
 
     def export_layer(ee_image, filepath, scale, max_pixels, visualize=False, vis_params=None):
         """Export a single image with error handling and fallback resolution."""
@@ -158,6 +170,14 @@ def snow_difference_map(region_polygon,
         ]
         
         for ee_image, name, vis_params in layers:
+            # Determine which stage we're on based on the layer name
+            if 'historical' in name:
+                stage_id = 'historical'
+            elif 'recent' in name:
+                stage_id = 'recent'
+            else:
+                stage_id = 'difference'
+            
             if output_format.lower() == 'tiff':
                 # Create output folders
                 raw_folder = os.path.join(output_folder, 'raw_data')
@@ -166,29 +186,33 @@ def snow_difference_map(region_polygon,
                 os.makedirs(vis_folder, exist_ok=True)
                 
                 # Export raw data (actual NDSI values)
+                report_progress(stage_id, f'Exporting raw {stage_id} data...')
                 raw_path = os.path.join(raw_folder, f"{name}_raw.tiff")
                 success, result = export_layer(ee_image, raw_path, scale, max_pixels)
                 if success:
-                    print(f"Raw data exported: {raw_path} ({result}m)")
+                    report_progress(stage_id, f"Raw data exported: {raw_path} ({result}m)")
                 else:
-                    print(f"Raw export failed: {result}")
+                    report_progress(stage_id, f"Raw export failed: {result}")
                 
                 # Export visualized data (RGB colored)
+                report_progress(stage_id, f'Exporting visualized {stage_id} data...')
                 vis_path = os.path.join(vis_folder, f"{name}_visualized.tiff")
                 success, result = export_layer(ee_image, vis_path, scale, max_pixels, True, vis_params)
                 if success:
-                    print(f"Visualized exported: {vis_path} ({result}m)")
+                    report_progress(stage_id, f"Visualized exported: {vis_path} ({result}m)")
                 else:
-                    print(f"Visualized export failed: {result}")
+                    report_progress(stage_id, f"Visualized export failed: {result}")
             
             else:
                 # For PNG/JPG, export only visualized version
                 export_path = os.path.join(output_folder, f"{name}.{output_format}")
                 success, result = export_layer(ee_image, export_path, scale, max_pixels, True, vis_params)
                 if success:
-                    print(f"Exported: {export_path} ({result}m)")
+                    report_progress(stage_id, f"Exported: {export_path} ({result}m)")
                 else:
-                    print(f"Export failed: {result}")
+                    report_progress(stage_id, f"Export failed: {result}")
+    
+    report_progress('map', 'Generating interactive map...')
     
     # Create interactive map (HTML maps have no size limits)
     try:
@@ -207,11 +231,11 @@ def snow_difference_map(region_polygon,
         if output_format.lower() == 'html' or export_by_layer:
             html_path = os.path.join(output_folder, f"{output_filename}.html")
             m.save(html_path)
-            print(f"Interactive map saved: {html_path}")
+            report_progress('map', f"Interactive map saved: {html_path}")
         
         return m
     
     except Exception as e:
-        print(f"Map creation failed: {str(e)}")
+        report_progress('error', f"Map creation failed: {str(e)}")
         return folium.Map(location=[0, 0], zoom_start=2)
 

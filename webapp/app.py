@@ -1,10 +1,14 @@
+import json
 import logging
 import re
 import sys
+import threading
+import uuid
 from pathlib import Path
+from queue import Queue
 from typing import Dict, List, Optional
 
-from flask import Flask, jsonify, render_template, request, send_from_directory, url_for
+from flask import Flask, Response, jsonify, render_template, request, send_from_directory, url_for
 
 # Project paths
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -58,6 +62,9 @@ if ee:
 
 app = Flask(__name__)
 app.config["OUTPUT_ROOT"] = OUTPUT_ROOT
+
+# Store for progress updates keyed by job_id
+progress_queues: Dict[str, Queue] = {}
 
 gee_ready = False
 
@@ -130,7 +137,7 @@ def serve_output(filename: str):
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
-    """Run the snowpack analysis using provided parameters."""
+    """Run the snowpack analysis using provided parameters with streaming progress."""
     if IMPORT_ERROR:
         return jsonify({"status": "error", "message": IMPORT_ERROR}), 500
 
@@ -176,32 +183,66 @@ def analyze():
     output_dir = app.config["OUTPUT_ROOT"] / params["output_name"]
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    try:
-        region = polygon_to_ee_geometry(coords)
-        snow_difference_map(
-            region_polygon=region,
-            date_range_1=ee.DateRange(params["historical_start"], params["historical_end"]),
-            date_range_2=ee.DateRange(params["recent_start"], params["recent_end"]),
-            month_int=params["month"],
-            cloud_cover=params["cloud_cover"],
-            clip_to_region=params["clip_to_region"],
-            output_folder=str(output_dir),
-            output_filename=params["output_name"],
-        )
-    except Exception as exc:  # pragma: no cover - runtime guard
-        logger.exception("Analysis failed: %s", exc)
-        return jsonify({"status": "error", "message": str(exc)}), 500
+    # Create a job ID and progress queue
+    job_id = str(uuid.uuid4())
+    progress_queue: Queue = Queue()
+    progress_queues[job_id] = progress_queue
 
-    outputs = build_output_listing(output_dir, params["output_name"])
+    def progress_callback(stage_id: str, message: str):
+        """Callback to push progress updates to the queue."""
+        progress_queue.put({"stage": stage_id, "message": message})
 
-    return jsonify(
-        {
-            "status": "success",
-            "message": "Analysis complete. Download links ready.",
-            "outputs": outputs,
-            "params": params,
-        }
-    )
+    def generate_sse():
+        """Generate Server-Sent Events for progress updates."""
+        # Send job started
+        yield f"data: {json.dumps({'type': 'started', 'job_id': job_id})}\n\n"
+
+        # Run analysis in a thread
+        result_holder = {"success": False, "error": None, "outputs": None}
+
+        def run_analysis():
+            try:
+                region = polygon_to_ee_geometry(coords)
+                snow_difference_map(
+                    region_polygon=region,
+                    date_range_1=ee.DateRange(params["historical_start"], params["historical_end"]),
+                    date_range_2=ee.DateRange(params["recent_start"], params["recent_end"]),
+                    month_int=params["month"],
+                    cloud_cover=params["cloud_cover"],
+                    clip_to_region=params["clip_to_region"],
+                    output_folder=str(output_dir),
+                    output_filename=params["output_name"],
+                    progress_callback=progress_callback,
+                )
+                result_holder["success"] = True
+                result_holder["outputs"] = build_output_listing(output_dir, params["output_name"])
+            except Exception as exc:
+                logger.exception("Analysis failed: %s", exc)
+                result_holder["error"] = str(exc)
+            finally:
+                progress_queue.put(None)  # Signal completion
+
+        # Start analysis thread
+        analysis_thread = threading.Thread(target=run_analysis)
+        analysis_thread.start()
+
+        # Stream progress updates
+        while True:
+            update = progress_queue.get()
+            if update is None:
+                break
+            yield f"data: {json.dumps({'type': 'progress', **update})}\n\n"
+
+        # Send final result
+        if result_holder["success"]:
+            yield f"data: {json.dumps({'type': 'complete', 'status': 'success', 'outputs': result_holder['outputs'], 'params': params})}\n\n"
+        else:
+            yield f"data: {json.dumps({'type': 'complete', 'status': 'error', 'message': result_holder['error']})}\n\n"
+
+        # Cleanup
+        del progress_queues[job_id]
+
+    return Response(generate_sse(), mimetype="text/event-stream")
 
 
 if __name__ == "__main__":  # pragma: no cover - manual execution

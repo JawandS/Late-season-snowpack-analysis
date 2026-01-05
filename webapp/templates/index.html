@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Snowpack Analysis Tool</title>
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    
     <!-- Google Fonts - Inter for modern UI -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -288,8 +291,13 @@
         }
         
         .btn-actions {
-            margin-top: auto;
             padding-top: 12px;
+        }
+        
+        .sidebar-footer {
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid var(--arctic-deep);
         }
         
         /* Map Container */
@@ -641,6 +649,102 @@
             transition: opacity 0.5s ease;
         }
         
+        /* Progress Section */
+        .progress-section {
+            width: 100%;
+            max-width: 500px;
+            margin-bottom: 32px;
+        }
+        
+        .progress-bar-container {
+            background: var(--arctic-dark);
+            border-radius: 8px;
+            height: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--glacier-blue), var(--aurora-teal));
+            border-radius: 8px;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        .progress-stages {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .progress-stage {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            background: rgba(15, 40, 71, 0.4);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            opacity: 0.4;
+            transition: all 0.3s ease;
+        }
+        
+        .progress-stage.active {
+            opacity: 1;
+            background: rgba(0, 212, 255, 0.15);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+        
+        .progress-stage.completed {
+            opacity: 0.7;
+        }
+        
+        .progress-stage.completed .stage-icon {
+            color: var(--success-mint);
+        }
+        
+        .stage-icon {
+            width: 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        .stage-name {
+            flex: 1;
+            color: var(--frost-white);
+        }
+        
+        .stage-time {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--arctic-light);
+            min-width: 50px;
+            text-align: right;
+        }
+        
+        .stage-spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid transparent;
+            border-top-color: var(--glacier-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        .total-elapsed {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 0.9rem;
+            color: var(--arctic-ice);
+        }
+        
+        .total-elapsed span {
+            font-family: var(--font-mono);
+            color: var(--glacier-blue);
+            font-weight: 600;
+        }
+        
         /* Map Prompt Overlay */
         .map-prompt {
             position: absolute;
@@ -696,6 +800,70 @@
         .leaflet-draw-toolbar a:hover {
             background-color: var(--arctic-mid) !important;
         }
+        
+        /* Results Map Iframe */
+        .results-map-container {
+            position: absolute;
+            inset: 0;
+            z-index: 900;
+            background: var(--arctic-darkest);
+            display: none;
+        }
+        
+        .results-map-container.active {
+            display: block;
+        }
+        
+        .results-map-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .results-map-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: linear-gradient(180deg, rgba(10, 22, 40, 0.95), rgba(10, 22, 40, 0));
+            z-index: 910;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 16px;
+        }
+        
+        .results-map-title {
+            flex: 1;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--frost-white);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-new-analysis {
+            background: linear-gradient(135deg, var(--glacier-blue), var(--aurora-teal));
+            color: var(--arctic-darkest);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            font-family: var(--font-primary);
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn-new-analysis:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -736,7 +904,47 @@
             <div class="spinner-icon">❄️</div>
         </div>
         <div class="loading-text">Analyzing Snowpack Data</div>
-        <div class="loading-subtext">Processing satellite imagery...</div>
+        <div class="loading-subtext" id="loadingSubtext">Initializing...</div>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="progress-stages" id="progressStages">
+                <div class="progress-stage" data-stage="init">
+                    <div class="stage-icon">🌐</div>
+                    <div class="stage-name">Processing satellite collections</div>
+                    <div class="stage-time" id="time-init">--</div>
+                </div>
+                <div class="progress-stage" data-stage="area">
+                    <div class="stage-icon">📐</div>
+                    <div class="stage-name">Calculating study area</div>
+                    <div class="stage-time" id="time-area">--</div>
+                </div>
+                <div class="progress-stage" data-stage="historical">
+                    <div class="stage-icon">📊</div>
+                    <div class="stage-name">Exporting historical data</div>
+                    <div class="stage-time" id="time-historical">--</div>
+                </div>
+                <div class="progress-stage" data-stage="recent">
+                    <div class="stage-icon">📈</div>
+                    <div class="stage-name">Exporting recent data</div>
+                    <div class="stage-time" id="time-recent">--</div>
+                </div>
+                <div class="progress-stage" data-stage="difference">
+                    <div class="stage-icon">🔄</div>
+                    <div class="stage-name">Exporting difference analysis</div>
+                    <div class="stage-time" id="time-difference">--</div>
+                </div>
+                <div class="progress-stage" data-stage="map">
+                    <div class="stage-icon">🗺️</div>
+                    <div class="stage-name">Generating interactive map</div>
+                    <div class="stage-time" id="time-map">--</div>
+                </div>
+            </div>
+            <div class="total-elapsed">Total time: <span id="totalElapsed">0:00</span></div>
+        </div>
+        
         <div class="fun-fact">
             <div class="fun-fact-label">❄️ Snow Fact</div>
             <div class="fun-fact-text" id="funFactText">Loading...</div>
@@ -832,9 +1040,6 @@
                 <button class="btn btn-primary" id="analyzeBtn" disabled>
                     <span>🔍</span> Run Analysis
                 </button>
-                <button class="btn btn-secondary" id="clearBtn">
-                    Clear Polygon
-                </button>
             </div>
 
             <div class="section" id="resultsSection" style="margin-top: 12px;">
@@ -843,11 +1048,30 @@
                     Run an analysis to generate results.
                 </div>
             </div>
+            
+            <div class="sidebar-footer">
+                <button class="btn btn-secondary" id="clearBtn">
+                    <span>🔄</span> Reset / New Analysis
+                </button>
+            </div>
         </div>
         
         <!-- Map -->
         <div class="map-container">
             <div id="map"></div>
+            
+            <!-- Results Map Iframe -->
+            <div class="results-map-container" id="resultsMapContainer">
+                <div class="results-map-header">
+                    <div class="results-map-title">
+                        <span>🗺️</span> Interactive Snow Analysis Results
+                    </div>
+                    <button class="btn-new-analysis" id="newAnalysisBtn">
+                        <span>✏️</span> New Analysis
+                    </button>
+                </div>
+                <iframe id="resultsMapIframe" src=""></iframe>
+            </div>
             
             <!-- Map Prompt -->
             <div class="map-prompt" id="mapPrompt">
@@ -858,7 +1082,7 @@
                 </div>
             </div>
             
-            <div class="status-badge" id="statusBadge">
+            <div class="status-badge hidden" id="statusBadge">
                 <div class="status-dot" id="statusDot"></div>
                 <span class="status-text" id="statusText">Draw a polygon to begin</span>
             </div>
@@ -888,10 +1112,61 @@
             "Snowpack in mountain regions provides drinking water for over 1 billion people worldwide.",
             "Late-season snow loss can reduce summer water availability by up to 25% in some regions.",
             "Satellite-based snow monitoring began with Landsat 1 in 1972.",
-            "Alpine snowpack has been declining at a rate of about 2% per decade globally."
+            "Alpine snowpack has been declining at a rate of about 2% per decade globally.",
+            "Snow reflects up to 90% of sunlight, making it crucial for Earth's energy balance.",
+            "The word 'avalanche' comes from the French word 'avaler', meaning to descend or swallow.",
+            "Antarctica contains about 26.5 million cubic kilometers of ice and snow.",
+            "Snow can fall at temperatures above freezing if the air is dry enough for evaporative cooling.",
+            "The Inuit people have over 50 words for different types of snow conditions.",
+            "Snowflakes fall at an average speed of 3-4 mph, but can vary based on size and wind.",
+            "The NDSI (Normalized Difference Snow Index) was developed in 1995 to map snow from satellite imagery.",
+            "Mount Baker in Washington holds the world record for seasonal snowfall: 1,140 inches in 1998-99.",
+            "Permafrost, permanently frozen ground, stores twice as much carbon as the atmosphere.",
+            "Snow algae can turn snowfields pink, red, or even green in summer months.",
+            "The albedo effect of snow can cool local temperatures by up to 10°F compared to bare ground.",
+            "Glaciers and ice sheets hold about 69% of the world's freshwater.",
+            "Snow depth can be measured from space using microwave sensors on satellites.",
+            "The Sierra Nevada snowpack provides water for 23 million Californians.",
+            "A 'snow drought' occurs when warm temperatures cause precipitation to fall as rain instead of snow.",
+            "Landsat satellites have been continuously monitoring Earth's surface since 1972.",
+            "Snow water equivalent (SWE) measures the amount of water contained in snowpack.",
+            "The Hindu Kush Himalaya region is called the 'Third Pole' due to its massive ice reserves.",
+            "Snowmelt timing affects wildfire risk - earlier melt leads to drier summer conditions.",
+            "Some insects, like snow fleas, thrive on snow surfaces even in freezing temperatures.",
+            "The Colorado River Basin relies on snowmelt for 60-80% of its annual water supply.",
+            "Cloud seeding has been used since the 1940s to try to increase snowfall in some regions.",
+            "Snow crystals form in one of 35 different shapes depending on temperature and humidity.",
+            "The term 'snowpack' refers to accumulated layers of snow that persist through winter.",
+            "Earth's ice and snow cover has decreased by about 10% since the 1960s.",
+            "Polar bears have evolved to appear white to blend in with snow and ice.",
+            "Snow fences are used to control drifting and can increase downwind snow depth by 10-15 feet."
         ];
         
         let funFactInterval;
+        let totalTimeInterval;
+        let stageTimeInterval;
+        let analysisStartTime;
+        let stageStartTimes = {};
+        let currentActiveStage = null;
+        let analysisComplete = false;
+        
+        // Stage order for progress tracking
+        const stageOrder = ['init', 'area', 'historical', 'recent', 'difference', 'map'];
+        const stageNames = {
+            'init': 'Processing satellite collections',
+            'area': 'Calculating study area',
+            'historical': 'Exporting historical data',
+            'recent': 'Exporting recent data',
+            'difference': 'Exporting difference analysis',
+            'map': 'Generating interactive map'
+        };
+        
+        function formatTime(ms) {
+            const seconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${minutes}:${secs.toString().padStart(2, '0')}`;
+        }
         
         function showRandomFunFact() {
             const factEl = document.getElementById('funFactText');
@@ -902,17 +1177,28 @@
             }, 300);
         }
         
+        // Hide map prompt on any map interaction
+        function hideMapPrompt() {
+            const prompt = document.getElementById('mapPrompt');
+            if (prompt && !prompt.classList.contains('hidden') && !analysisComplete) {
+                prompt.classList.add('hidden');
+            }
+        }
+        
         // Intro overlay handling
         document.getElementById('startBtn').addEventListener('click', function() {
             document.getElementById('introOverlay').classList.add('hidden');
-            // Focus on the map prompt
-            setTimeout(() => {
-                document.getElementById('mapPrompt').style.animation = 'promptPulse 2s ease-in-out infinite';
-            }, 300);
         });
         
         // Initialize map centered on Rocky Mountains
         const map = L.map('map').setView([40.0, -105.5], 6);
+        
+        // Hide map prompt on any map interaction
+        map.on('click', hideMapPrompt);
+        map.on('mousedown', hideMapPrompt);
+        map.on('zoomstart', hideMapPrompt);
+        map.on('movestart', hideMapPrompt);
+        map.on('draw:drawstart', hideMapPrompt);
         
         // Add OpenStreetMap tiles
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -1041,11 +1327,13 @@
                 dot.classList.add('ready');
                 text.textContent = 'Region selected - Ready to analyze';
                 btn.disabled = false;
+                badge.classList.remove('hidden');
             } else {
                 dot.classList.remove('ready');
                 text.textContent = 'Draw a polygon to begin';
                 btn.disabled = true;
-                badge.classList.remove('hidden');
+                // Hide the status badge when not ready (no polygon)
+                badge.classList.add('hidden');
             }
         }
         
@@ -1078,14 +1366,125 @@
                 overlay.classList.add('active');
                 statusBadge.classList.add('hidden');
                 showRandomFunFact();
-                funFactInterval = setInterval(showRandomFunFact, 5000);
+                funFactInterval = setInterval(showRandomFunFact, 12500);
+                
+                // Reset progress UI
+                resetProgressUI();
+                
+                // Start total time counter
+                analysisStartTime = Date.now();
+                totalTimeInterval = setInterval(() => {
+                    const elapsed = Date.now() - analysisStartTime;
+                    document.getElementById('totalElapsed').textContent = formatTime(elapsed);
+                }, 1000);
+                
+                // Start stage time counter
+                stageTimeInterval = setInterval(() => {
+                    if (currentActiveStage && stageStartTimes[currentActiveStage]) {
+                        const elapsed = Date.now() - stageStartTimes[currentActiveStage];
+                        document.getElementById(`time-${currentActiveStage}`).textContent = formatTime(elapsed);
+                    }
+                }, 100);
+                
             } else {
                 overlay.classList.remove('active');
-                statusBadge.classList.remove('hidden');
                 clearInterval(funFactInterval);
+                clearInterval(totalTimeInterval);
+                clearInterval(stageTimeInterval);
+                
+                // Mark all stages as completed
+                completeAllStages();
             }
         }
         
+        function resetProgressUI() {
+            document.getElementById('progressBar').style.width = '0%';
+            stageStartTimes = {};
+            currentActiveStage = null;
+            document.querySelectorAll('.progress-stage').forEach(stage => {
+                stage.classList.remove('active', 'completed');
+                const icon = stage.querySelector('.stage-icon');
+                icon.innerHTML = icon.dataset.originalIcon || icon.innerHTML;
+            });
+            stageOrder.forEach(id => {
+                document.getElementById(`time-${id}`).textContent = '--';
+            });
+            document.getElementById('totalElapsed').textContent = '0:00';
+            document.getElementById('loadingSubtext').textContent = 'Initializing...';
+            
+            // Store original icons
+            document.querySelectorAll('.progress-stage').forEach(stage => {
+                const icon = stage.querySelector('.stage-icon');
+                if (!icon.dataset.originalIcon) {
+                    icon.dataset.originalIcon = icon.innerHTML;
+                }
+            });
+        }
+        
+        function updateStageProgress(stageId, message) {
+            // Skip unknown stages (like 'complete' or 'error')
+            if (!stageOrder.includes(stageId)) {
+                console.log('Skipping unknown stage:', stageId, message);
+                return;
+            }
+            
+            const stageEl = document.querySelector(`[data-stage="${stageId}"]`);
+            if (!stageEl) return;
+            
+            const timeEl = document.getElementById(`time-${stageId}`);
+            const iconEl = stageEl.querySelector('.stage-icon');
+            
+            // Mark all previous stages as completed
+            const currentIndex = stageOrder.indexOf(stageId);
+            for (let i = 0; i < currentIndex; i++) {
+                const prevId = stageOrder[i];
+                const prevEl = document.querySelector(`[data-stage="${prevId}"]`);
+                if (prevEl && !prevEl.classList.contains('completed')) {
+                    prevEl.classList.remove('active');
+                    prevEl.classList.add('completed');
+                    prevEl.querySelector('.stage-icon').innerHTML = '✓';
+                    
+                    // Finalize time if we have it
+                    if (stageStartTimes[prevId]) {
+                        const finalTime = Date.now() - stageStartTimes[prevId];
+                        document.getElementById(`time-${prevId}`).textContent = formatTime(finalTime);
+                    }
+                }
+            }
+            
+            // Activate current stage if not already
+            if (!stageEl.classList.contains('active') && !stageEl.classList.contains('completed')) {
+                stageEl.classList.add('active');
+                iconEl.innerHTML = '<div class="stage-spinner"></div>';
+                stageStartTimes[stageId] = Date.now();
+                currentActiveStage = stageId;
+            }
+            
+            // Update loading subtext
+            document.getElementById('loadingSubtext').textContent = message;
+            
+            // Update progress bar
+            const progress = ((currentIndex + 0.5) / stageOrder.length) * 100;
+            document.getElementById('progressBar').style.width = Math.min(progress, 95) + '%';
+        }
+        
+        function completeAllStages() {
+            // Finalize any active stage time
+            if (currentActiveStage && stageStartTimes[currentActiveStage]) {
+                const finalTime = Date.now() - stageStartTimes[currentActiveStage];
+                document.getElementById(`time-${currentActiveStage}`).textContent = formatTime(finalTime);
+            }
+            
+            document.getElementById('progressBar').style.width = '100%';
+            document.querySelectorAll('.progress-stage').forEach(stage => {
+                stage.classList.remove('active');
+                stage.classList.add('completed');
+                stage.querySelector('.stage-icon').innerHTML = '✓';
+            });
+            document.getElementById('loadingSubtext').textContent = 'Complete!';
+            currentActiveStage = null;
+        }
+
         function clearResultLayers() {
             resultLayers.forEach(layer => {
                 map.removeLayer(layer);
@@ -1096,8 +1495,13 @@
 
         function renderResults(outputs) {
             const content = document.getElementById('resultsContent');
+            const resultsMapContainer = document.getElementById('resultsMapContainer');
+            const resultsMapIframe = document.getElementById('resultsMapIframe');
+            
             if (!outputs) {
                 content.textContent = 'No outputs generated yet.';
+                resultsMapContainer.classList.remove('active');
+                resultsMapIframe.src = '';
                 return;
             }
 
@@ -1114,6 +1518,10 @@
             
             if (outputs.html_map) {
                 html += `<p style="margin-top:12px;font-size:0.8rem;"><a href="${outputs.html_map}" target="_blank">📥 Download full HTML map</a></p>`;
+                
+                // Load the interactive map in the iframe
+                resultsMapIframe.src = outputs.html_map;
+                resultsMapContainer.classList.add('active');
             }
 
             content.innerHTML = html || 'Analysis completed! Results displayed on map.';
@@ -1123,6 +1531,24 @@
                 loadResultLayer(outputs.geojson_url, 'Snow Analysis Results');
             }
         }
+        
+        // New Analysis button handler
+        document.getElementById('newAnalysisBtn').addEventListener('click', function() {
+            // Hide results map
+            document.getElementById('resultsMapContainer').classList.remove('active');
+            document.getElementById('resultsMapIframe').src = '';
+            
+            // Reset state
+            drawnItems.clearLayers();
+            currentPolygon = null;
+            analysisComplete = false;
+            updateStatus(false);
+            document.getElementById('coordDisplay').textContent = 'No polygon drawn yet';
+            updateSectionStates(false);
+            document.getElementById('mapPrompt').classList.remove('hidden');
+            renderResults(null);
+            clearResultLayers();
+        });
         
         function loadResultLayer(url, name) {
             fetch(url)
@@ -1159,8 +1585,13 @@
         
         // Clear button
         document.getElementById('clearBtn').addEventListener('click', function() {
+            // Hide results map
+            document.getElementById('resultsMapContainer').classList.remove('active');
+            document.getElementById('resultsMapIframe').src = '';
+            
             drawnItems.clearLayers();
             currentPolygon = null;
+            analysisComplete = false; // Reset analysis state
             updateStatus(false);
             document.getElementById('coordDisplay').textContent = 'No polygon drawn yet';
             updateSectionStates(false);
@@ -1188,15 +1619,16 @@
                 clip_to_region: document.getElementById('clipToRegion').checked
             };
             
+            this.disabled = true;
+            hideToast();
+            showLoading(true);
+            
+            // Clear the drawn polygon while processing
+            drawnItems.clearLayers();
+            clearResultLayers();
+            
             try {
-                this.disabled = true;
-                hideToast();
-                showLoading(true);
-                
-                // Clear the drawn polygon while processing
-                drawnItems.clearLayers();
-                clearResultLayers();
-                
+                // Use fetch with streaming for SSE
                 const response = await fetch('/analyze', {
                     method: 'POST',
                     headers: {
@@ -1205,32 +1637,80 @@
                     body: JSON.stringify(data)
                 });
                 
-                const result = await response.json();
-                
-                showLoading(false);
-                
-                if (result.status === 'success') {
-                    showToast('✓ Analysis completed successfully!');
-                    renderResults(result.outputs);
-                    
-                    // Reset polygon state
-                    currentPolygon = null;
-                    updateStatus(false);
-                    updateSectionStates(false);
-                    document.getElementById('coordDisplay').textContent = 'No polygon drawn yet';
-                    document.getElementById('mapPrompt').classList.remove('hidden');
-                    
-                    console.log('Response:', result);
-                } else {
-                    showToast(result.message || 'Analysis failed', true);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); // Keep incomplete line in buffer
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const eventData = JSON.parse(line.slice(6));
+                                handleProgressEvent(eventData);
+                            } catch (e) {
+                                console.error('Failed to parse SSE data:', e);
+                            }
+                        }
+                    }
+                }
+                
             } catch (error) {
                 showLoading(false);
                 showToast('Error: ' + error.message, true);
+                document.getElementById('mapPrompt').classList.remove('hidden');
             } finally {
                 this.disabled = false;
             }
         });
+        
+        function handleProgressEvent(eventData) {
+            switch (eventData.type) {
+                case 'started':
+                    console.log('Analysis started, job_id:', eventData.job_id);
+                    break;
+                    
+                case 'progress':
+                    updateStageProgress(eventData.stage, eventData.message);
+                    break;
+                    
+                case 'complete':
+                    showLoading(false);
+                    
+                    if (eventData.status === 'success') {
+                        showToast('✓ Analysis completed successfully!');
+                        renderResults(eventData.outputs);
+                        
+                        // Mark analysis as complete - don't show map prompt again
+                        analysisComplete = true;
+                        
+                        // Reset polygon state but keep map prompt hidden
+                        currentPolygon = null;
+                        updateStatus(false);
+                        updateSectionStates(false);
+                        document.getElementById('coordDisplay').textContent = 'Draw a new polygon to run another analysis';
+                        // Keep map prompt hidden since we have results
+                        document.getElementById('mapPrompt').classList.add('hidden');
+                        
+                        console.log('Analysis complete:', eventData);
+                    } else {
+                        showToast(eventData.message || 'Analysis failed', true);
+                        // On failure, allow redrawing
+                        document.getElementById('mapPrompt').classList.remove('hidden');
+                    }
+                    break;
+            }
+        }
         
         // Show first fun fact
         showRandomFunFact();
