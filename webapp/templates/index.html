@@ -1530,22 +1530,25 @@
         }
         
         // New Analysis button handler
-        document.getElementById('newAnalysisBtn').addEventListener('click', function() {
-            // Hide results map
-            document.getElementById('resultsMapContainer').classList.remove('active');
-            document.getElementById('resultsMapIframe').src = '';
-            
-            // Reset state
-            drawnItems.clearLayers();
-            currentPolygon = null;
-            analysisComplete = false;
-            updateStatus(false);
-            document.getElementById('coordDisplay').textContent = 'No polygon drawn yet';
-            updateSectionStates(false);
-            document.getElementById('mapPrompt').classList.remove('hidden');
-            renderResults(null);
-            clearResultLayers();
-        });
+        const newAnalysisBtn = document.getElementById('newAnalysisBtn');
+        if (newAnalysisBtn) {
+            newAnalysisBtn.addEventListener('click', function() {
+                // Hide results map
+                document.getElementById('resultsMapContainer').classList.remove('active');
+                document.getElementById('resultsMapIframe').src = '';
+                
+                // Reset state
+                drawnItems.clearLayers();
+                currentPolygon = null;
+                analysisComplete = false;
+                updateStatus(false);
+                document.getElementById('coordDisplay').textContent = 'No polygon drawn yet';
+                updateSectionStates(false);
+                document.getElementById('mapPrompt').classList.remove('hidden');
+                renderResults(null);
+                clearResultLayers();
+            });
+        }
         
         function loadResultLayer(url, name) {
             fetch(url)
