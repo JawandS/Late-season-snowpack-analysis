@@ -5,12 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Snowpack Analysis Tool</title>
     
+    <!-- Google Fonts - Inter for modern UI -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <!-- Leaflet Draw CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
     
     <style>
+        :root {
+            /* Arctic Blue Color Palette */
+            --arctic-darkest: #0a1628;
+            --arctic-dark: #0f2847;
+            --arctic-deep: #163a5f;
+            --arctic-mid: #1e5f8a;
+            --arctic-light: #4a9ece;
+            --arctic-bright: #7ec8e3;
+            --arctic-ice: #b8e4f0;
+            --arctic-snow: #e8f7fc;
+            
+            /* Accent Colors */
+            --frost-white: #f0f9ff;
+            --glacier-blue: #00d4ff;
+            --aurora-teal: #00e5c7;
+            --warning-amber: #ffb347;
+            --error-coral: #ff6b6b;
+            --success-mint: #4ade80;
+            
+            /* Typography */
+            --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            
+            /* Transitions */
+            --transition-fast: 0.15s ease;
+            --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            
+            /* Shadows */
+            --shadow-soft: 0 4px 20px rgba(0, 20, 40, 0.25);
+            --shadow-glow: 0 0 30px rgba(78, 158, 206, 0.3);
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -18,10 +55,13 @@
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #1a1a2e;
-            color: #eee;
+            font-family: var(--font-primary);
+            background: var(--arctic-darkest);
+            color: var(--frost-white);
             min-height: 100vh;
+            line-height: 1.5;
+            font-size: 14px;
+            -webkit-font-smoothing: antialiased;
         }
         
         .container {
@@ -31,142 +71,232 @@
         
         /* Sidebar Styles */
         .sidebar {
-            width: 360px;
-            background: #16213e;
-            padding: 24px;
+            width: 380px;
+            min-width: 380px;
+            background: linear-gradient(180deg, var(--arctic-dark) 0%, var(--arctic-darkest) 100%);
+            padding: 20px;
             overflow-y: auto;
-            border-right: 1px solid #0f3460;
+            border-right: 1px solid var(--arctic-deep);
+            display: flex;
+            flex-direction: column;
+            scrollbar-width: thin;
+            scrollbar-color: var(--arctic-mid) transparent;
+        }
+        
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb {
+            background: var(--arctic-mid);
+            border-radius: 3px;
         }
         
         .logo {
             text-align: center;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--arctic-deep);
+        }
+        
+        .logo-icon {
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 0 10px rgba(126, 200, 227, 0.5));
         }
         
         .logo h1 {
-            font-size: 1.5rem;
-            color: #e94560;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--arctic-bright);
             margin-bottom: 4px;
+            letter-spacing: -0.02em;
         }
         
         .logo p {
-            font-size: 0.85rem;
-            color: #888;
+            font-size: 0.75rem;
+            color: var(--arctic-light);
+            font-weight: 400;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
         }
         
         .section {
-            background: #1a1a2e;
+            background: rgba(15, 40, 71, 0.5);
+            backdrop-filter: blur(10px);
             border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(78, 158, 206, 0.15);
+            transition: var(--transition-smooth);
+        }
+        
+        .section:hover {
+            border-color: rgba(78, 158, 206, 0.3);
+        }
+        
+        .section.disabled {
+            opacity: 0.5;
+            pointer-events: none;
         }
         
         .section-title {
-            font-size: 0.9rem;
+            font-size: 0.7rem;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #e94560;
-            margin-bottom: 16px;
+            letter-spacing: 0.1em;
+            color: var(--arctic-light);
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
             gap: 8px;
+            font-weight: 600;
         }
         
         .section-title::before {
             content: '';
-            width: 4px;
-            height: 16px;
-            background: #e94560;
+            width: 3px;
+            height: 14px;
+            background: linear-gradient(180deg, var(--glacier-blue), var(--aurora-teal));
             border-radius: 2px;
         }
         
         .form-group {
-            margin-bottom: 16px;
+            margin-bottom: 12px;
+        }
+        
+        .form-group:last-child {
+            margin-bottom: 0;
         }
         
         .form-group label {
             display: block;
-            font-size: 0.85rem;
-            color: #aaa;
+            font-size: 0.75rem;
+            color: var(--arctic-ice);
             margin-bottom: 6px;
+            font-weight: 500;
         }
         
         .form-group input, .form-group select {
             width: 100%;
-            padding: 10px 14px;
-            border: 1px solid #0f3460;
+            padding: 10px 12px;
+            border: 1px solid var(--arctic-deep);
             border-radius: 8px;
-            background: #16213e;
-            color: #eee;
-            font-size: 0.95rem;
-            transition: border-color 0.2s;
+            background: var(--arctic-darkest);
+            color: var(--frost-white);
+            font-size: 0.85rem;
+            font-family: var(--font-primary);
+            transition: var(--transition-fast);
         }
         
         .form-group input:focus, .form-group select:focus {
             outline: none;
-            border-color: #e94560;
+            border-color: var(--glacier-blue);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.15);
+        }
+        
+        .form-group select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237ec8e3' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+        
+        .form-group input[type="date"] {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
         }
         
         .date-range {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
+            gap: 10px;
         }
         
         .checkbox-group {
             display: flex;
             align-items: center;
             gap: 10px;
+            padding: 8px 0;
         }
         
         .checkbox-group input[type="checkbox"] {
             width: 18px;
             height: 18px;
-            accent-color: #e94560;
+            accent-color: var(--glacier-blue);
+            cursor: pointer;
+        }
+        
+        .checkbox-group label {
+            margin: 0 !important;
+            cursor: pointer;
         }
         
         .btn {
             width: 100%;
-            padding: 14px;
+            padding: 14px 20px;
             border: none;
-            border-radius: 8px;
-            font-size: 1rem;
+            border-radius: 10px;
+            font-size: 0.9rem;
             font-weight: 600;
+            font-family: var(--font-primary);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: var(--transition-smooth);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, #e94560, #c73659);
-            color: white;
+            background: linear-gradient(135deg, var(--glacier-blue), var(--aurora-teal));
+            color: var(--arctic-darkest);
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
         }
         
-        .btn-primary:hover {
+        .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
+            box-shadow: 0 6px 25px rgba(0, 212, 255, 0.4);
+        }
+        
+        .btn-primary:active:not(:disabled) {
+            transform: translateY(0);
         }
         
         .btn-primary:disabled {
-            background: #555;
+            background: var(--arctic-deep);
+            color: var(--arctic-mid);
             cursor: not-allowed;
-            transform: none;
             box-shadow: none;
         }
         
         .btn-secondary {
-            background: #0f3460;
-            color: #eee;
-            margin-top: 10px;
+            background: transparent;
+            color: var(--arctic-light);
+            border: 1px solid var(--arctic-deep);
+            margin-top: 8px;
         }
         
         .btn-secondary:hover {
-            background: #1a4a7a;
+            background: var(--arctic-deep);
+            border-color: var(--arctic-mid);
+        }
+        
+        .btn-actions {
+            margin-top: auto;
+            padding-top: 12px;
         }
         
         /* Map Container */
         .map-container {
             flex: 1;
             position: relative;
+            background: var(--arctic-darkest);
         }
         
         #map {
@@ -179,37 +309,61 @@
             position: absolute;
             top: 20px;
             right: 20px;
-            background: #16213e;
-            padding: 12px 20px;
-            border-radius: 8px;
+            background: rgba(15, 40, 71, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 12px 18px;
+            border-radius: 10px;
             z-index: 1000;
             display: flex;
             align-items: center;
             gap: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            box-shadow: var(--shadow-soft);
+            border: 1px solid rgba(78, 158, 206, 0.2);
+            transition: var(--transition-smooth);
+        }
+        
+        .status-badge.hidden {
+            opacity: 0;
+            transform: translateY(-10px);
+            pointer-events: none;
         }
         
         .status-dot {
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background: #ffc107;
+            background: var(--warning-amber);
+            animation: pulse 2s infinite;
         }
         
         .status-dot.ready {
-            background: #4caf50;
+            background: var(--success-mint);
+            animation: none;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .status-text {
+            font-size: 0.85rem;
+            font-weight: 500;
         }
         
         /* Coordinate Display */
         .coord-display {
-            font-size: 0.8rem;
-            color: #888;
-            margin-top: 12px;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--arctic-ice);
+            margin-top: 10px;
             padding: 10px;
-            background: #0d1b2a;
-            border-radius: 6px;
-            max-height: 100px;
+            background: var(--arctic-darkest);
+            border-radius: 8px;
+            max-height: 80px;
             overflow-y: auto;
+            border: 1px solid var(--arctic-deep);
+            white-space: pre-wrap;
         }
         
         /* Toast Notifications */
@@ -217,49 +371,41 @@
             position: fixed;
             bottom: 30px;
             left: 50%;
-            transform: translateX(-50%);
-            background: #16213e;
-            padding: 16px 28px;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(15, 40, 71, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 14px 24px;
+            border-radius: 10px;
+            box-shadow: var(--shadow-soft);
             z-index: 2000;
-            display: none;
-            border-left: 4px solid #4caf50;
+            opacity: 0;
+            border-left: 4px solid var(--success-mint);
+            transition: var(--transition-smooth);
+            font-weight: 500;
         }
         
         .toast.error {
-            border-left-color: #f44336;
+            border-left-color: var(--error-coral);
         }
         
         .toast.show {
-            display: block;
-            animation: slideUp 0.3s ease;
-        }
-        
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translate(-50%, 20px);
-            }
-            to {
-                opacity: 1;
-                transform: translate(-50%, 0);
-            }
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
         }
         
         /* Instructions */
         .instructions {
-            font-size: 0.85rem;
-            color: #888;
+            font-size: 0.8rem;
+            color: var(--arctic-ice);
             line-height: 1.6;
             padding: 12px;
-            background: #0d1b2a;
-            border-radius: 6px;
-            margin-bottom: 16px;
+            background: rgba(0, 212, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(0, 212, 255, 0.1);
         }
         
         .instructions strong {
-            color: #e94560;
+            color: var(--glacier-blue);
         }
 
         .results-list {
@@ -269,40 +415,353 @@
         }
 
         .results-list li {
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .results-list a {
-            color: #4da3ff;
+            color: var(--glacier-blue);
             text-decoration: none;
+            font-size: 0.8rem;
+            transition: var(--transition-fast);
         }
 
         .results-list a:hover {
+            color: var(--arctic-bright);
             text-decoration: underline;
+        }
+        
+        /* Intro Overlay */
+        .intro-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 22, 40, 0.95);
+            backdrop-filter: blur(20px);
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-smooth);
+        }
+        
+        .intro-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .intro-content {
+            text-align: center;
+            max-width: 500px;
+            padding: 40px;
+        }
+        
+        .intro-icon {
+            font-size: 5rem;
+            margin-bottom: 24px;
+            filter: drop-shadow(0 0 30px rgba(126, 200, 227, 0.6));
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .intro-content h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--frost-white);
+            margin-bottom: 12px;
+            letter-spacing: -0.02em;
+        }
+        
+        .intro-content p {
+            color: var(--arctic-ice);
+            margin-bottom: 32px;
+            font-size: 1rem;
+            line-height: 1.7;
+        }
+        
+        .intro-steps {
+            text-align: left;
+            background: rgba(15, 40, 71, 0.5);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 32px;
+            border: 1px solid rgba(78, 158, 206, 0.2);
+        }
+        
+        .intro-step {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(78, 158, 206, 0.1);
+        }
+        
+        .intro-step:last-child {
+            border-bottom: none;
+        }
+        
+        .step-number {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--glacier-blue), var(--aurora-teal));
+            color: var(--arctic-darkest);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+        
+        .step-text {
+            color: var(--frost-white);
+            font-size: 0.9rem;
+        }
+        
+        .btn-start {
+            background: linear-gradient(135deg, var(--glacier-blue), var(--aurora-teal));
+            color: var(--arctic-darkest);
+            border: none;
+            padding: 16px 48px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: var(--font-primary);
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.4);
+        }
+        
+        .btn-start:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0, 212, 255, 0.5);
+        }
+        
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 22, 40, 0.92);
+            backdrop-filter: blur(15px);
+            z-index: 2500;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: var(--transition-smooth);
+        }
+        
+        .loading-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .loading-spinner {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            margin-bottom: 32px;
+        }
+        
+        .spinner-ring {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            border-top-color: var(--glacier-blue);
+            animation: spin 1.2s linear infinite;
+        }
+        
+        .spinner-ring:nth-child(2) {
+            inset: 8px;
+            border-top-color: var(--aurora-teal);
+            animation-duration: 1.8s;
+            animation-direction: reverse;
+        }
+        
+        .spinner-ring:nth-child(3) {
+            inset: 16px;
+            border-top-color: var(--arctic-bright);
+            animation-duration: 2.4s;
+        }
+        
+        .spinner-icon {
+            position: absolute;
+            inset: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--frost-white);
+            margin-bottom: 8px;
+        }
+        
+        .loading-subtext {
+            font-size: 0.9rem;
+            color: var(--arctic-light);
+            margin-bottom: 40px;
+        }
+        
+        .fun-fact {
+            max-width: 450px;
+            text-align: center;
+            padding: 20px 28px;
+            background: rgba(15, 40, 71, 0.5);
+            border-radius: 12px;
+            border: 1px solid rgba(78, 158, 206, 0.2);
+        }
+        
+        .fun-fact-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--glacier-blue);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .fun-fact-text {
+            color: var(--arctic-ice);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            transition: opacity 0.5s ease;
+        }
+        
+        /* Map Prompt Overlay */
+        .map-prompt {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 800;
+            pointer-events: none;
+            transition: var(--transition-smooth);
+        }
+        
+        .map-prompt.hidden {
+            opacity: 0;
+        }
+        
+        .map-prompt-content {
+            background: rgba(15, 40, 71, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 32px 48px;
+            border-radius: 16px;
+            border: 2px dashed var(--glacier-blue);
+            animation: promptPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes promptPulse {
+            0%, 100% { border-color: var(--glacier-blue); }
+            50% { border-color: var(--aurora-teal); }
+        }
+        
+        .map-prompt-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+        
+        .map-prompt h3 {
+            font-size: 1.25rem;
+            color: var(--frost-white);
+            margin-bottom: 8px;
+        }
+        
+        .map-prompt p {
+            color: var(--arctic-ice);
+            font-size: 0.9rem;
+        }
+        
+        /* Leaflet customizations */
+        .leaflet-draw-toolbar a {
+            background-color: var(--arctic-dark) !important;
+            border-color: var(--arctic-deep) !important;
+        }
+        
+        .leaflet-draw-toolbar a:hover {
+            background-color: var(--arctic-mid) !important;
         }
     </style>
 </head>
 <body>
+    <!-- Intro Overlay -->
+    <div class="intro-overlay" id="introOverlay">
+        <div class="intro-content">
+            <div class="intro-icon">🏔️</div>
+            <h2>Welcome to Snowpack Analysis</h2>
+            <p>Analyze late-season snow coverage changes between historical and recent periods using satellite imagery.</p>
+            
+            <div class="intro-steps">
+                <div class="intro-step">
+                    <div class="step-number">1</div>
+                    <div class="step-text">Draw a polygon on the map to define your study area</div>
+                </div>
+                <div class="intro-step">
+                    <div class="step-number">2</div>
+                    <div class="step-text">Configure time periods and analysis parameters</div>
+                </div>
+                <div class="intro-step">
+                    <div class="step-number">3</div>
+                    <div class="step-text">Run analysis and view results directly on the map</div>
+                </div>
+            </div>
+            
+            <button class="btn-start" id="startBtn">
+                Get Started →
+            </button>
+        </div>
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <div class="spinner-ring"></div>
+            <div class="spinner-ring"></div>
+            <div class="spinner-ring"></div>
+            <div class="spinner-icon">❄️</div>
+        </div>
+        <div class="loading-text">Analyzing Snowpack Data</div>
+        <div class="loading-subtext">Processing satellite imagery...</div>
+        <div class="fun-fact">
+            <div class="fun-fact-label">❄️ Snow Fact</div>
+            <div class="fun-fact-text" id="funFactText">Loading...</div>
+        </div>
+    </div>
+
     <div class="container">
         <!-- Sidebar -->
         <div class="sidebar">
             <div class="logo">
-                <h1>❄️ Snowpack Analysis</h1>
-                <p>Late Season Snow Coverage Tool</p>
+                <div class="logo-icon">🏔️</div>
+                <h1>Snowpack Analysis</h1>
+                <p>Late Season Coverage Tool</p>
             </div>
             
-            <div class="section">
+            <div class="section" id="regionSection">
                 <div class="section-title">Region Selection</div>
                 <div class="instructions">
                     <strong>Draw a polygon</strong> on the map to define your study area. 
                     Use the polygon tool in the top-left corner of the map.
                 </div>
-                <div class="coord-display" id="coordDisplay">
-                    No polygon drawn yet
-                </div>
+                <div class="coord-display" id="coordDisplay">No polygon drawn yet</div>
             </div>
             
-            <div class="section">
+            <div class="section disabled" id="historicalSection">
                 <div class="section-title">Historical Period</div>
                 <div class="date-range">
                     <div class="form-group">
@@ -316,7 +775,7 @@
                 </div>
             </div>
             
-            <div class="section">
+            <div class="section disabled" id="recentSection">
                 <div class="section-title">Recent Period</div>
                 <div class="date-range">
                     <div class="form-group">
@@ -330,7 +789,7 @@
                 </div>
             </div>
             
-            <div class="section">
+            <div class="section disabled" id="paramsSection">
                 <div class="section-title">Analysis Parameters</div>
                 
                 <div class="form-group">
@@ -364,22 +823,24 @@
                 <div class="form-group">
                     <div class="checkbox-group">
                         <input type="checkbox" id="clipToRegion">
-                        <label for="clipToRegion" style="margin: 0;">Clip output to region</label>
+                        <label for="clipToRegion">Clip output to region</label>
                     </div>
                 </div>
             </div>
             
-            <button class="btn btn-primary" id="analyzeBtn" disabled>
-                Run Analysis
-            </button>
-            <button class="btn btn-secondary" id="clearBtn">
-                Clear Polygon
-            </button>
+            <div class="btn-actions">
+                <button class="btn btn-primary" id="analyzeBtn" disabled>
+                    <span>🔍</span> Run Analysis
+                </button>
+                <button class="btn btn-secondary" id="clearBtn">
+                    Clear Polygon
+                </button>
+            </div>
 
-            <div class="section" id="resultsSection">
+            <div class="section" id="resultsSection" style="margin-top: 12px;">
                 <div class="section-title">Results</div>
                 <div class="instructions" id="resultsContent">
-                    Run an analysis to generate output links here.
+                    Run an analysis to generate results.
                 </div>
             </div>
         </div>
@@ -387,9 +848,19 @@
         <!-- Map -->
         <div class="map-container">
             <div id="map"></div>
-            <div class="status-badge">
+            
+            <!-- Map Prompt -->
+            <div class="map-prompt" id="mapPrompt">
+                <div class="map-prompt-content">
+                    <div class="map-prompt-icon">✏️</div>
+                    <h3>Draw Your Study Area</h3>
+                    <p>Use the polygon tool (top-left) to select a region</p>
+                </div>
+            </div>
+            
+            <div class="status-badge" id="statusBadge">
                 <div class="status-dot" id="statusDot"></div>
-                <span id="statusText">Draw a polygon to begin</span>
+                <span class="status-text" id="statusText">Draw a polygon to begin</span>
             </div>
         </div>
     </div>
@@ -403,6 +874,43 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     
     <script>
+        // Fun facts about snow and climate
+        const funFacts = [
+            "A single snowflake can contain up to 200 ice crystals, and no two snowflakes are exactly alike.",
+            "The Rocky Mountains hold about 70% of the freshwater supply for the western United States in their snowpack.",
+            "Snow can appear blue in deep holes or crevasses because ice absorbs red light and reflects blue.",
+            "The largest recorded snowflake was 15 inches wide, found in Montana in 1887.",
+            "Fresh snow is typically 90-95% trapped air, making it an excellent insulator.",
+            "Climate change has reduced spring snowpack in the western US by 15-30% since the 1950s.",
+            "A cubic foot of snow can contain up to 2 billion individual ice crystals.",
+            "Snow covers about 46 million square kilometers of Earth's surface each winter.",
+            "The scientific study of snow is called nivology, derived from the Latin word for snow.",
+            "Snowpack in mountain regions provides drinking water for over 1 billion people worldwide.",
+            "Late-season snow loss can reduce summer water availability by up to 25% in some regions.",
+            "Satellite-based snow monitoring began with Landsat 1 in 1972.",
+            "Alpine snowpack has been declining at a rate of about 2% per decade globally."
+        ];
+        
+        let funFactInterval;
+        
+        function showRandomFunFact() {
+            const factEl = document.getElementById('funFactText');
+            factEl.style.opacity = '0';
+            setTimeout(() => {
+                factEl.textContent = funFacts[Math.floor(Math.random() * funFacts.length)];
+                factEl.style.opacity = '1';
+            }, 300);
+        }
+        
+        // Intro overlay handling
+        document.getElementById('startBtn').addEventListener('click', function() {
+            document.getElementById('introOverlay').classList.add('hidden');
+            // Focus on the map prompt
+            setTimeout(() => {
+                document.getElementById('mapPrompt').style.animation = 'promptPulse 2s ease-in-out infinite';
+            }, 300);
+        });
+        
         // Initialize map centered on Rocky Mountains
         const map = L.map('map').setView([40.0, -105.5], 6);
         
@@ -417,14 +925,20 @@
         });
         
         // Layer control
-        L.control.layers({
+        const baseLayers = {
             'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map),
             'Satellite': satellite
-        }).addTo(map);
+        };
+        
+        const overlayLayers = {};
+        const layerControl = L.control.layers(baseLayers, overlayLayers).addTo(map);
         
         // Initialize FeatureGroup for drawn items
         const drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
+        
+        // Result layers group
+        let resultLayers = [];
         
         // Initialize draw control
         const drawControl = new L.Control.Draw({
@@ -433,16 +947,18 @@
                 polygon: {
                     allowIntersection: false,
                     shapeOptions: {
-                        color: '#e94560',
+                        color: '#00d4ff',
                         weight: 3,
-                        fillOpacity: 0.2
+                        fillOpacity: 0.15,
+                        fillColor: '#00d4ff'
                     }
                 },
                 rectangle: {
                     shapeOptions: {
-                        color: '#e94560',
+                        color: '#00d4ff',
                         weight: 3,
-                        fillOpacity: 0.2
+                        fillOpacity: 0.15,
+                        fillColor: '#00d4ff'
                     }
                 },
                 circle: false,
@@ -458,6 +974,19 @@
         
         // Current polygon coordinates
         let currentPolygon = null;
+        
+        // Enable/disable sections based on polygon state
+        function updateSectionStates(hasPolygon) {
+            const sections = ['historicalSection', 'recentSection', 'paramsSection'];
+            sections.forEach(id => {
+                const el = document.getElementById(id);
+                if (hasPolygon) {
+                    el.classList.remove('disabled');
+                } else {
+                    el.classList.add('disabled');
+                }
+            });
+        }
         
         // Handle polygon creation
         map.on(L.Draw.Event.CREATED, function(event) {
@@ -476,6 +1005,10 @@
             // Update UI
             updateStatus(true);
             updateCoordDisplay(coords);
+            updateSectionStates(true);
+            
+            // Hide map prompt
+            document.getElementById('mapPrompt').classList.add('hidden');
         });
         
         // Handle polygon edit
@@ -494,12 +1027,15 @@
             currentPolygon = null;
             updateStatus(false);
             document.getElementById('coordDisplay').textContent = 'No polygon drawn yet';
+            updateSectionStates(false);
+            document.getElementById('mapPrompt').classList.remove('hidden');
         });
         
         function updateStatus(ready) {
             const dot = document.getElementById('statusDot');
             const text = document.getElementById('statusText');
             const btn = document.getElementById('analyzeBtn');
+            const badge = document.getElementById('statusBadge');
             
             if (ready) {
                 dot.classList.add('ready');
@@ -509,22 +1045,53 @@
                 dot.classList.remove('ready');
                 text.textContent = 'Draw a polygon to begin';
                 btn.disabled = true;
+                badge.classList.remove('hidden');
             }
         }
         
         function updateCoordDisplay(coords) {
             const display = document.getElementById('coordDisplay');
             const formatted = coords.slice(0, -1).map((c, i) => 
-                `Point ${i + 1}: [${c[0].toFixed(4)}, ${c[1].toFixed(4)}]`
+                `P${i + 1}: [${c[0].toFixed(4)}, ${c[1].toFixed(4)}]`
             ).join('\n');
             display.textContent = formatted;
         }
         
-        function showToast(message, isError = false) {
+        function showToast(message, isError = false, duration = 3000) {
             const toast = document.getElementById('toast');
             toast.textContent = message;
             toast.className = 'toast show' + (isError ? ' error' : '');
-            setTimeout(() => toast.classList.remove('show'), 3000);
+            if (duration > 0) {
+                setTimeout(() => toast.classList.remove('show'), duration);
+            }
+        }
+        
+        function hideToast() {
+            document.getElementById('toast').classList.remove('show');
+        }
+        
+        function showLoading(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            const statusBadge = document.getElementById('statusBadge');
+            
+            if (show) {
+                overlay.classList.add('active');
+                statusBadge.classList.add('hidden');
+                showRandomFunFact();
+                funFactInterval = setInterval(showRandomFunFact, 5000);
+            } else {
+                overlay.classList.remove('active');
+                statusBadge.classList.remove('hidden');
+                clearInterval(funFactInterval);
+            }
+        }
+        
+        function clearResultLayers() {
+            resultLayers.forEach(layer => {
+                map.removeLayer(layer);
+                layerControl.removeLayer(layer);
+            });
+            resultLayers = [];
         }
 
         function renderResults(outputs) {
@@ -536,20 +1103,58 @@
 
             let html = '';
 
-            if (outputs.html_map) {
-                html += `<p><a href="${outputs.html_map}" target="_blank">Open interactive map</a></p>`;
-            }
-
             const renderList = (title, files) => {
                 if (!files || !files.length) return '';
                 const items = files.map(f => `<li><a href="${f}" target="_blank">${f.split('/').pop()}</a></li>`).join('');
-                return `<div class="results-block"><div class="section-title" style="margin-bottom:8px;font-size:0.8rem;">${title}</div><ul class="results-list">${items}</ul></div>`;
+                return `<div class="results-block"><div class="section-title" style="margin-bottom:8px;font-size:0.7rem;">${title}</div><ul class="results-list">${items}</ul></div>`;
             };
 
-            html += renderList('Raw Data', outputs.raw_files);
-            html += renderList('Visualized Layers', outputs.visualized_files);
+            html += renderList('📊 Raw Data', outputs.raw_files);
+            html += renderList('🗺️ Visualized Layers', outputs.visualized_files);
+            
+            if (outputs.html_map) {
+                html += `<p style="margin-top:12px;font-size:0.8rem;"><a href="${outputs.html_map}" target="_blank">📥 Download full HTML map</a></p>`;
+            }
 
-            content.innerHTML = html || 'Analysis completed, but no downloadable files were found.';
+            content.innerHTML = html || 'Analysis completed! Results displayed on map.';
+            
+            // Try to load result layers onto the map
+            if (outputs.geojson_url) {
+                loadResultLayer(outputs.geojson_url, 'Snow Analysis Results');
+            }
+        }
+        
+        function loadResultLayer(url, name) {
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const layer = L.geoJSON(data, {
+                        style: function(feature) {
+                            return {
+                                fillColor: getSnowColor(feature.properties.snow_change || 0),
+                                weight: 1,
+                                opacity: 0.8,
+                                color: '#fff',
+                                fillOpacity: 0.6
+                            };
+                        }
+                    });
+                    layer.addTo(map);
+                    layerControl.addOverlay(layer, name);
+                    resultLayers.push(layer);
+                    map.fitBounds(layer.getBounds());
+                })
+                .catch(err => console.log('Could not load result layer:', err));
+        }
+        
+        function getSnowColor(value) {
+            // Color scale from red (loss) to blue (gain)
+            if (value < -20) return '#d73027';
+            if (value < -10) return '#fc8d59';
+            if (value < 0) return '#fee08b';
+            if (value < 10) return '#d9ef8b';
+            if (value < 20) return '#91cf60';
+            return '#1a9850';
         }
         
         // Clear button
@@ -558,7 +1163,10 @@
             currentPolygon = null;
             updateStatus(false);
             document.getElementById('coordDisplay').textContent = 'No polygon drawn yet';
+            updateSectionStates(false);
+            document.getElementById('mapPrompt').classList.remove('hidden');
             renderResults(null);
+            clearResultLayers();
         });
         
         // Analyze button
@@ -582,7 +1190,12 @@
             
             try {
                 this.disabled = true;
-                this.textContent = 'Processing...';
+                hideToast();
+                showLoading(true);
+                
+                // Clear the drawn polygon while processing
+                drawnItems.clearLayers();
+                clearResultLayers();
                 
                 const response = await fetch('/analyze', {
                     method: 'POST',
@@ -594,20 +1207,33 @@
                 
                 const result = await response.json();
                 
+                showLoading(false);
+                
                 if (result.status === 'success') {
-                    showToast('Analysis request submitted successfully!');
+                    showToast('✓ Analysis completed successfully!');
                     renderResults(result.outputs);
+                    
+                    // Reset polygon state
+                    currentPolygon = null;
+                    updateStatus(false);
+                    updateSectionStates(false);
+                    document.getElementById('coordDisplay').textContent = 'No polygon drawn yet';
+                    document.getElementById('mapPrompt').classList.remove('hidden');
+                    
                     console.log('Response:', result);
                 } else {
                     showToast(result.message || 'Analysis failed', true);
                 }
             } catch (error) {
+                showLoading(false);
                 showToast('Error: ' + error.message, true);
             } finally {
                 this.disabled = false;
-                this.textContent = 'Run Analysis';
             }
         });
+        
+        // Show first fun fact
+        showRandomFunFact();
     </script>
 </body>
 </html>
