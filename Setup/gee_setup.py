@@ -45,6 +45,13 @@ except ImportError:
     sns = None
 
 try:
+    from dotenv import load_dotenv
+    print("✅ python-dotenv imported successfully")
+except ImportError:
+    print("❌ python-dotenv not found. Install with: conda install -c conda-forge python-dotenv")
+    load_dotenv = None
+
+try:
     from IPython.display import Image, display
     print("✅ IPython display imported successfully")
 except ImportError:
@@ -55,7 +62,7 @@ except ImportError:
 import json
 print("✅ json imported successfully (built-in)")
 
-def initialize_gee():
+def initialize_gee(project=None):
     """Initialize Google Earth Engine"""
     if ee is None:
         print("❌ Cannot initialize GEE - earthengine-api not installed")
@@ -64,16 +71,31 @@ def initialize_gee():
         return False
         
     try:
-        ee.Initialize()
+        import os
+        if load_dotenv is not None:
+            load_dotenv()
+        resolved_project = (
+            project
+            or os.environ.get('EE_PROJECT')
+            or os.environ.get('GEE_PROJECT')
+            or os.environ.get('GOOGLE_CLOUD_PROJECT')
+        )
+        if resolved_project:
+            ee.Initialize(project=resolved_project)
+        else:
+            ee.Initialize()
         print("Google Earth Engine initialized successfully!")
+        if resolved_project:
+            print(f"Using EE project: {resolved_project}")
         print(f"EE version: {ee.__version__}")
         return True
     except Exception as e:
         print(f"Initialization failed: {e}")
         print("Run authentication first: ee.Authenticate()")
+        print("If you see 'no project found', pass project= or set EE_PROJECT/GOOGLE_CLOUD_PROJECT.")
         return False
 
-def setup_gee():
+def setup_gee(project=None):
     """Setup matplotlib and initialize GEE"""
     # Set up matplotlib if available
     if plt is not None and sns is not None:
@@ -84,7 +106,7 @@ def setup_gee():
         print("❌ Matplotlib/Seaborn not available - skipping setup")
     
     # Initialize GEE
-    return initialize_gee()
+    return initialize_gee(project=project)
 
 # Define what gets imported with "from gee_setup import *"
 __all__ = [
@@ -104,12 +126,12 @@ def check_environment():
         return False
     return True
 
-def quick_setup():
+def quick_setup(project=None):
     """One-line setup function"""
     print("=== GEE Quick Setup ===")
     env_ok = check_environment()
     if env_ok:
-        return setup_gee()
+        return setup_gee(project=project)
     return False
 
 print("GEE utilities loaded successfully!")

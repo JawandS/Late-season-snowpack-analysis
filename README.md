@@ -20,6 +20,14 @@ This repository provides tools for analyzing changes in snow cover between two t
    ```bash
    earthengine authenticate
    ```
+4. **Set your Earth Engine project (required for initialization):**
+   ```bash
+   export EE_PROJECT="your-gcp-project-id"
+   ```
+   Or put it in a `.env` file:
+   ```
+   EE_PROJECT=your-gcp-project-id
+   ```
 
 ## Usage
 
@@ -28,7 +36,7 @@ This repository provides tools for analyzing changes in snow cover between two t
 import sys
 sys.path.append('./Setup')
 from gee_setup import *
-setup_gee()
+setup_gee(project="your-gcp-project-id")
 
 # Import the analysis function
 sys.path.append('./execution')

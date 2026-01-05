@@ -23,6 +23,7 @@ requests>=2.32.0
 pillow>=11.0.0
 pyyaml>=6.0.0
 geojson>=3.0.0
+python-dotenv>=1.0.0
 
 # Jupyter packages (optional - for notebook usage)
 jupyter>=1.1.0
