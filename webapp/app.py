@@ -8,7 +8,16 @@ from pathlib import Path
 from queue import Queue
 from typing import Dict, List, Optional
 
-from flask import Flask, Response, jsonify, render_template, request, send_from_directory, url_for
+from flask import (
+    Flask,
+    Response,
+    jsonify,
+    render_template,
+    request,
+    send_from_directory,
+    url_for,
+    has_request_context,
+)
 
 # Project paths
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -97,30 +106,38 @@ def polygon_to_ee_geometry(coords: List[List[float]]):
 
 def build_output_listing(output_dir: Path, output_name: str) -> Dict[str, object]:
     """Create a JSON-friendly listing of generated output files."""
-    def to_url(path: Path) -> str:
-        relative = path.relative_to(app.config["OUTPUT_ROOT"])
-        return url_for("serve_output", filename=str(relative))
 
-    html_map: Optional[str] = None
-    html_path = output_dir / f"{output_name}.html"
-    if html_path.exists():
-        html_map = to_url(html_path)
+    def build_listing() -> Dict[str, object]:
+        def to_url(path: Path) -> str:
+            relative = path.relative_to(app.config["OUTPUT_ROOT"])
+            return url_for("serve_output", filename=str(relative))
 
-    raw_files = []
-    raw_dir = output_dir / "raw_data"
-    if raw_dir.exists():
-        raw_files = [to_url(p) for p in sorted(raw_dir.glob("*")) if p.is_file()]
+        html_map: Optional[str] = None
+        html_path = output_dir / f"{output_name}.html"
+        if html_path.exists():
+            html_map = to_url(html_path)
 
-    visualized_files = []
-    vis_dir = output_dir / "visualized"
-    if vis_dir.exists():
-        visualized_files = [to_url(p) for p in sorted(vis_dir.glob("*")) if p.is_file()]
+        raw_files = []
+        raw_dir = output_dir / "raw_data"
+        if raw_dir.exists():
+            raw_files = [to_url(p) for p in sorted(raw_dir.glob("*")) if p.is_file()]
 
-    return {
-        "html_map": html_map,
-        "raw_files": raw_files,
-        "visualized_files": visualized_files,
-    }
+        visualized_files = []
+        vis_dir = output_dir / "visualized"
+        if vis_dir.exists():
+            visualized_files = [to_url(p) for p in sorted(vis_dir.glob("*")) if p.is_file()]
+
+        return {
+            "html_map": html_map,
+            "raw_files": raw_files,
+            "visualized_files": visualized_files,
+        }
+
+    if has_request_context():
+        return build_listing()
+
+    with app.test_request_context():
+        return build_listing()
 
 
 @app.route("/")
